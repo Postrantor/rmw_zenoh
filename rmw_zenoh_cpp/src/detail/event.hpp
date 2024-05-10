@@ -135,29 +135,13 @@ public:
     std::unique_ptr<rmw_zenoh_event_status_t> event,
     rmw_context_impl_t * context_impl);
 
-  /// @brief Attach the condition variable provided by rmw_wait.
-  /// @param condition_variable to attach.
-  void attach_event_condition(
-    rmw_zenoh_event_type_t event_id,
-    std::condition_variable * condition_variable);
-
-  /// @brief Detach the condition variable provided by rmw_wait.
-  void detach_event_condition(rmw_zenoh_event_type_t event_id);
-
 private:
   /// @brief Trigger the callback for an event.
   /// @param event_id the event id whose callback should be triggered.
   void trigger_event_callback(rmw_zenoh_event_type_t event_id);
 
-  /// Notify once event is added to an event queue.
-  void notify_event(rmw_zenoh_event_type_t event_id);
-
   /// Mutex to lock when read/writing members.
   mutable std::mutex event_mutex_;
-  /// Mutex to lock for event_condition.
-  mutable std::mutex event_condition_mutex_;
-  /// Condition variable to attach for event notifications.
-  std::condition_variable * event_conditions_[ZENOH_EVENT_ID_MAX + 1]{nullptr};
   /// User callback that can be set via data_callback_mgr.set_callback().
   rmw_event_callback_t callback_ {nullptr};
   /// User data that should be passed to the user callback.

@@ -180,60 +180,10 @@ void EventsManager::add_new_event(
 
   // Since we added new data, trigger event callback and guard condition if they are available
   trigger_event_callback(event_id);
-  notify_event(event_id);
 
   {
     std::lock_guard<std::mutex> lk(context_impl->handles_mutex);
     context_impl->handles.insert(this);
     context_impl->handles_cv.notify_all();
-  }
-}
-
-///=============================================================================
-void EventsManager::attach_event_condition(
-  rmw_zenoh_event_type_t event_id,
-  std::condition_variable * condition_variable)
-{
-  if (event_id > ZENOH_EVENT_ID_MAX) {
-    RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
-      "RMW Zenoh is not correctly configured to handle rmw_zenoh_event_type_t [%d]. "
-      "Report this bug.",
-      event_id);
-    return;
-  }
-
-  std::lock_guard<std::mutex> lock(event_condition_mutex_);
-  event_conditions_[event_id] = condition_variable;
-}
-
-///=============================================================================
-void EventsManager::detach_event_condition(rmw_zenoh_event_type_t event_id)
-{
-  if (event_id > ZENOH_EVENT_ID_MAX) {
-    RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
-      "RMW Zenoh is not correctly configured to handle rmw_zenoh_event_type_t [%d]. "
-      "Report this bug.",
-      event_id);
-    return;
-  }
-
-  std::lock_guard<std::mutex> lock(event_condition_mutex_);
-  event_conditions_[event_id] = nullptr;
-}
-
-///=============================================================================
-void EventsManager::notify_event(rmw_zenoh_event_type_t event_id)
-{
-  if (event_id > ZENOH_EVENT_ID_MAX) {
-    RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
-      "RMW Zenoh is not correctly configured to handle rmw_zenoh_event_type_t [%d]. "
-      "Report this bug.",
-      event_id);
-    return;
-  }
-
-  std::lock_guard<std::mutex> lock(event_condition_mutex_);
-  if (event_conditions_[event_id] != nullptr) {
-    event_conditions_[event_id]->notify_one();
   }
 }

@@ -3165,6 +3165,8 @@ rmw_wait(
     }
   }
   if (events) {
+    // TODO(clalancette): This code is just wrong; we need to do something
+    // a lot more complicated here.
     for (size_t i = 0; i < events->event_count; ++i) {
       data_to_parent[events->events[i]] = &events->events[i];
       events->events[i] = nullptr;
