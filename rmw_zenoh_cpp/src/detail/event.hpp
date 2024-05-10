@@ -132,7 +132,8 @@ public:
   /// @param event_id the event id queue to which the status should be added.
   void add_new_event(
     rmw_zenoh_event_type_t event_id,
-    std::unique_ptr<rmw_zenoh_event_status_t> event);
+    std::unique_ptr<rmw_zenoh_event_status_t> event,
+    rmw_context_impl_t * context_impl);
 
   /// @brief Attach the condition variable provided by rmw_wait.
   /// @param condition_variable to attach.

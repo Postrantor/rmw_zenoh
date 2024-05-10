@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "event.hpp"
+#include "rmw_data_types.hpp"
 
 #include "rcutils/logging_macros.h"
 
@@ -147,7 +148,8 @@ std::unique_ptr<rmw_zenoh_event_status_t> EventsManager::pop_next_event(
 ///=============================================================================
 void EventsManager::add_new_event(
   rmw_zenoh_event_type_t event_id,
-  std::unique_ptr<rmw_zenoh_event_status_t> event)
+  std::unique_ptr<rmw_zenoh_event_status_t> event,
+  rmw_context_impl_t * context_impl)
 {
   if (event_id > ZENOH_EVENT_ID_MAX) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
@@ -179,6 +181,12 @@ void EventsManager::add_new_event(
   // Since we added new data, trigger event callback and guard condition if they are available
   trigger_event_callback(event_id);
   notify_event(event_id);
+
+  {
+    std::lock_guard<std::mutex> lk(context_impl->handles_mutex);
+    context_impl->handles.insert(this);
+    context_impl->handles_cv.notify_all();
+  }
 }
 
 ///=============================================================================

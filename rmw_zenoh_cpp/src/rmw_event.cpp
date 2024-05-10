@@ -70,7 +70,8 @@ rmw_publisher_event_init(
       }
       pub_data->events_mgr.add_new_event(
         event_id,
-        std::move(zenoh_event));
+        std::move(zenoh_event),
+        pub_data->context->impl);
     }
   );
 
@@ -128,7 +129,8 @@ rmw_subscription_event_init(
       }
       sub_data->events_mgr.add_new_event(
         event_id,
-        std::move(zenoh_event));
+        std::move(zenoh_event),
+        sub_data->context->impl);
     }
   );
 
