@@ -400,6 +400,12 @@ void sub_data_handler(
     std::make_unique<saved_msg_data>(
       zc_sample_payload_rcinc(sample),
       sample->timestamp.time, pub_gid, sequence_number, source_timestamp), z_loan(keystr));
+
+  {
+    std::lock_guard<std::mutex> lk(sub_data->context->impl->handles_mutex);
+    sub_data->context->impl->handles.insert(data);
+    sub_data->context->impl->handles_cv.notify_all();
+  }
 }
 
 ///=============================================================================
@@ -441,6 +447,12 @@ void service_data_handler(const z_query_t * query, void * data)
   }
 
   service_data->add_new_query(std::make_unique<ZenohQuery>(query));
+
+  {
+    std::lock_guard<std::mutex> lk(service_data->context->impl->handles_mutex);
+    service_data->context->impl->handles.insert(data);
+    service_data->context->impl->handles_cv.notify_all();
+  }
 }
 
 ///=============================================================================
@@ -507,4 +519,10 @@ void client_data_handler(z_owned_reply_t * reply, void * data)
   client_data->add_new_reply(std::make_unique<ZenohReply>(reply));
   // Since we took ownership of the reply, null it out here
   *reply = z_reply_null();
+
+  {
+    std::lock_guard<std::mutex> lk(client_data->context->impl->handles_mutex);
+    client_data->context->impl->handles.insert(data);
+    client_data->context->impl->handles_cv.notify_all();
+  }
 }
