@@ -3142,34 +3142,42 @@ rmw_wait(
 
   if (guard_conditions) {
     for (size_t i = 0; i < guard_conditions->guard_condition_count; ++i) {
-      data_to_parent[guard_conditions->guard_conditions[i]] = &guard_conditions->guard_conditions[i];
-      guard_conditions->guard_conditions[i] = nullptr;
+      if (guard_conditions->guard_conditions[i] != nullptr) {
+        data_to_parent[guard_conditions->guard_conditions[i]] = &guard_conditions->guard_conditions[i];
+        guard_conditions->guard_conditions[i] = nullptr;
+      }
     }
   }
   if (subscriptions) {
     for (size_t i = 0; i < subscriptions->subscriber_count; ++i) {
-      data_to_parent[subscriptions->subscribers[i]] = &subscriptions->subscribers[i];
-      subscriptions->subscribers[i] = nullptr;
+      if (subscriptions->subscribers[i] != nullptr) {
+        data_to_parent[subscriptions->subscribers[i]] = &subscriptions->subscribers[i];
+        subscriptions->subscribers[i] = nullptr;
+      }
     }
   }
   if (services) {
     for (size_t i = 0; i < services->service_count; ++i) {
-      data_to_parent[services->services[i]] = &services->services[i];
-      services->services[i] = nullptr;
+      if (services->services[i] != nullptr) {
+        data_to_parent[services->services[i]] = &services->services[i];
+        services->services[i] = nullptr;
+      }
     }
   }
   if (clients) {
     for (size_t i = 0; i < clients->client_count; ++i) {
-      data_to_parent[clients->clients[i]] = &clients->clients[i];
-      clients->clients[i] = nullptr;
+      if (clients->clients[i] != nullptr) {
+        data_to_parent[clients->clients[i]] = &clients->clients[i];
+        clients->clients[i] = nullptr;
+      }
     }
   }
   if (events) {
-    // TODO(clalancette): This code is just wrong; we need to do something
-    // a lot more complicated here.
     for (size_t i = 0; i < events->event_count; ++i) {
-      data_to_parent[events->events[i]] = &events->events[i];
-      events->events[i] = nullptr;
+      if (events->events[i] != nullptr) {
+        data_to_parent[events->events[i]] = &events->events[i];
+        events->events[i] = nullptr;
+      }
     }
   }
 
