@@ -3213,6 +3213,66 @@ rmw_wait(
   // signals to the upper layers that it isn't ready.  If something is ready, then we leave it as
   // a valid pointer.
 
+  std::unordered_map<void *, void **> data_to_parent;
+
+  if (guard_conditions) {
+    for (size_t i = 0; i < guard_conditions->guard_condition_count; ++i) {
+      data_to_parent[guard_conditions->guard_conditions[i]] = &guard_conditions->guard_conditions[i];
+      guard_conditions->guard_conditions[i] = nullptr;
+    }
+  }
+  if (subscriptions) {
+    for (size_t i = 0; i < subscriptions->subscriber_count; ++i) {
+      data_to_parent[subscriptions->subscribers[i]] = &subscriptions->subscribers[i];
+      subscriptions->subscribers[i] = nullptr;
+    }
+  }
+  if (services) {
+    for (size_t i = 0; i < services->service_count; ++i) {
+      data_to_parent[services->services[i]] = &services->services[i];
+      services->services[i] = nullptr;
+    }
+  }
+  if (clients) {
+    for (size_t i = 0; i < clients->client_count; ++i) {
+      data_to_parent[clients->clients[i]] = &clients->clients[i];
+      clients->clients[i] = nullptr;
+    }
+  }
+  if (events) {
+    for (size_t i = 0; i < events->event_count; ++i) {
+      data_to_parent[events->events[i]] = &events->events[i];
+      events->events[i] = nullptr;
+    }
+  }
+
+  std::unique_lock<std::mutex> lk(wait_set_data->context->impl->handles_mutex);
+  if (wait_set_data->context->impl->handles.empty()) {
+    // According to the RMW documentation, if wait_timeout is NULL that means
+    // "wait forever", if it specified by 0 it means "never wait", and if it is anything else wait
+    // for that amount of time.
+    if (wait_timeout == nullptr) {
+      wait_set_data->context->impl->handles_cv.wait(lk);
+    } else {
+      if (wait_timeout->sec != 0 || wait_timeout->nsec != 0) {
+        wait_set_data->context->impl->handles_cv.wait_for(
+          lk, std::chrono::nanoseconds(wait_timeout->nsec + RCUTILS_S_TO_NS(wait_timeout->sec)));
+      }
+    }
+  }
+
+  bool has_data = false;
+  for (void * ptr : wait_set_data->context->impl->handles) {
+    std::unordered_map<void *, void **>::const_iterator it = data_to_parent.find(ptr);
+    //fprintf(stderr, "CHRIS: ptr: %p (%d)\n", ptr, it != data_to_parent.end());
+    *(it->second) = ptr;
+    has_data = true;
+  }
+  wait_set_data->context->impl->handles.clear();
+
+  return has_data ? RMW_RET_OK : RMW_RET_TIMEOUT;
+
+#if 0
   bool skip_wait = has_triggered_condition(
     subscriptions, guard_conditions, services, clients, events);
   bool wait_result = true;
@@ -3380,6 +3440,7 @@ rmw_wait(
   }
 
   return (skip_wait || wait_result) ? RMW_RET_OK : RMW_RET_TIMEOUT;
+#endif
 }
 
 //==============================================================================
