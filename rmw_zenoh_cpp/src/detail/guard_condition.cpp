@@ -22,8 +22,7 @@
 ///==============================================================================
 GuardCondition::GuardCondition(rmw_context_impl_t * context_impl)
 : context_impl_(context_impl),
-  has_triggered_(false),
-  condition_variable_(nullptr)
+  has_triggered_(false)
 {
 }
 
@@ -37,29 +36,9 @@ void GuardCondition::trigger()
   // be called
   has_triggered_ = true;
 
-  if (condition_variable_ != nullptr) {
-    condition_variable_->notify_one();
-  }
-
-  {
-    std::lock_guard<std::mutex> lk(context_impl_->handles_mutex);
-    context_impl_->handles.insert(this);
-    context_impl_->handles_cv.notify_all();
-  }
-}
-
-///==============================================================================
-void GuardCondition::attach_condition(std::condition_variable * condition_variable)
-{
-  std::lock_guard<std::mutex> lock(internal_mutex_);
-  condition_variable_ = condition_variable;
-}
-
-///==============================================================================
-void GuardCondition::detach_condition()
-{
-  std::lock_guard<std::mutex> lock(internal_mutex_);
-  condition_variable_ = nullptr;
+  std::lock_guard<std::mutex> lk(context_impl_->handles_mutex);
+  context_impl_->handles.insert(this);
+  context_impl_->handles_cv.notify_all();
 }
 
 ///==============================================================================
