@@ -128,9 +128,6 @@ private:
 ///=============================================================================
 struct rmw_wait_set_data_t
 {
-  std::condition_variable condition_variable;
-  std::mutex condition_mutex;
-
   rmw_context_t * context;
 };
 
@@ -177,10 +174,6 @@ public:
   MessageTypeSupport * type_support;
   rmw_context_t * context;
 
-  void attach_condition(std::condition_variable * condition_variable);
-
-  void detach_condition();
-
   bool message_queue_is_empty() const;
 
   std::unique_ptr<saved_msg_data> pop_next_message();
@@ -193,11 +186,6 @@ public:
 private:
   std::deque<std::unique_ptr<saved_msg_data>> message_queue_;
   mutable std::mutex message_queue_mutex_;
-
-  void notify();
-
-  std::condition_variable * condition_{nullptr};
-  std::mutex condition_mutex_;
 };
 
 
@@ -248,10 +236,6 @@ public:
 
   bool query_queue_is_empty() const;
 
-  void attach_condition(std::condition_variable * condition_variable);
-
-  void detach_condition();
-
   std::unique_ptr<ZenohQuery> pop_next_query();
 
   void add_new_query(std::unique_ptr<ZenohQuery> query);
@@ -263,8 +247,6 @@ public:
   DataCallbackManager data_callback_mgr;
 
 private:
-  void notify();
-
   // Deque to store the queries in the order they arrive.
   std::deque<std::unique_ptr<ZenohQuery>> query_queue_;
   mutable std::mutex query_queue_mutex_;
@@ -273,9 +255,6 @@ private:
   using SequenceToQuery = std::unordered_map<int64_t, std::unique_ptr<ZenohQuery>>;
   std::unordered_map<size_t, SequenceToQuery> sequence_to_query_map_;
   std::mutex sequence_to_query_map_mutex_;
-
-  std::condition_variable * condition_{nullptr};
-  std::mutex condition_mutex_;
 };
 
 ///=============================================================================
@@ -325,22 +304,13 @@ public:
 
   bool reply_queue_is_empty() const;
 
-  void attach_condition(std::condition_variable * condition_variable);
-
-  void detach_condition();
-
   std::unique_ptr<ZenohReply> pop_next_reply();
 
   DataCallbackManager data_callback_mgr;
 
 private:
-  void notify();
-
   size_t sequence_number_{1};
   std::mutex sequence_number_mutex_;
-
-  std::condition_variable * condition_{nullptr};
-  std::mutex condition_mutex_;
 
   std::deque<std::unique_ptr<ZenohReply>> reply_queue_;
   mutable std::mutex reply_queue_mutex_;
