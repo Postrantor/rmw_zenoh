@@ -24,6 +24,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -62,6 +63,10 @@ public:
   std::unique_ptr<GraphCache> graph_cache;
 
   size_t get_next_entity_id();
+
+  std::mutex handles_mutex;
+  std::condition_variable handles_cv;
+  std::unordered_set<void *> handles;
 
 private:
   // A counter to assign a local id for every entity created in this session.
