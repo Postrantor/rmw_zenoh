@@ -3143,7 +3143,8 @@ rmw_wait(
   if (guard_conditions) {
     for (size_t i = 0; i < guard_conditions->guard_condition_count; ++i) {
       if (guard_conditions->guard_conditions[i] != nullptr) {
-        data_to_parent[guard_conditions->guard_conditions[i]] = &guard_conditions->guard_conditions[i];
+        data_to_parent[guard_conditions->guard_conditions[i]] =
+          &guard_conditions->guard_conditions[i];
         guard_conditions->guard_conditions[i] = nullptr;
       }
     }
@@ -3199,14 +3200,20 @@ rmw_wait(
   }
 
   bool has_data = false;
-  for (void * ptr : wait_set_data->context->impl->handles) {
-    std::unordered_map<void *, void **>::const_iterator it = data_to_parent.find(ptr);
+  std::unordered_set<void *>::iterator handle_it = wait_set_data->context->impl->handles.begin();
+
+  while (handle_it != wait_set_data->context->impl->handles.end()) {
+    std::unordered_map<void *, void **>::const_iterator it = data_to_parent.find(*handle_it);
     if (it != data_to_parent.end()) {
-      *(it->second) = ptr;
+      *(it->second) = *handle_it;
       has_data = true;
+      std::unordered_set<void *>::iterator delete_handle_it = handle_it;
+      handle_it++;
+      wait_set_data->context->impl->handles.erase(delete_handle_it);
+    } else {
+      handle_it++;
     }
   }
-  wait_set_data->context->impl->handles.clear();
 
   return (has_data || wait_result) ? RMW_RET_OK : RMW_RET_TIMEOUT;
 }
