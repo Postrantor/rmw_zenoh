@@ -79,10 +79,17 @@ namespace
 // the old string into it. If this becomes a performance problem, we could consider
 // modifying the topic_name in place. But this means we need to be much more
 // careful about who owns the string.
-z_owned_keyexpr_t ros_topic_name_to_zenoh_key(const char * const topic_name, size_t domain_id)
+z_owned_keyexpr_t ros_topic_name_to_zenoh_key(
+  const char * const topic_name,
+  const char * const topic_type,
+  size_t domain_id)
 {
-  const std::string keyexpr_str = std::to_string(domain_id) + "/" + liveliness::mangle_name(
-    topic_name);
+  const std::string keyexpr_str =
+    std::to_string(domain_id) +
+    "/" +
+    liveliness::mangle_name(topic_name) +
+    "/" +
+    liveliness::mangle_name(topic_type);
   return z_keyexpr_new(keyexpr_str.c_str());
 }
 
@@ -561,7 +568,9 @@ rmw_create_publisher(
     });
 
   z_owned_keyexpr_t keyexpr = ros_topic_name_to_zenoh_key(
-    topic_name, node->context->actual_domain_id);
+    topic_name,
+    publisher_data->type_support->get_name(),
+    node->context->actual_domain_id);
   auto always_free_ros_keyexpr = rcpputils::make_scope_exit(
     [&keyexpr]() {
       z_keyexpr_drop(z_move(keyexpr));
@@ -1351,7 +1360,9 @@ rmw_create_subscription(
 
   z_owned_closure_sample_t callback = z_closure(sub_data_handler, nullptr, sub_data);
   z_owned_keyexpr_t keyexpr = ros_topic_name_to_zenoh_key(
-    topic_name, node->context->actual_domain_id);
+    topic_name,
+    sub_data->type_support->get_name(),
+    node->context->actual_domain_id);
   auto always_free_ros_keyexpr = rcpputils::make_scope_exit(
     [&keyexpr]() {
       z_keyexpr_drop(z_move(keyexpr));
@@ -2042,17 +2053,6 @@ rmw_create_client(
       allocator->deallocate(const_cast<char *>(rmw_client->service_name), allocator->state);
     });
 
-  client_data->keyexpr = ros_topic_name_to_zenoh_key(
-    rmw_client->service_name, node->context->actual_domain_id);
-  auto free_ros_keyexpr = rcpputils::make_scope_exit(
-    [client_data]() {
-      z_keyexpr_drop(z_move(client_data->keyexpr));
-    });
-  if (!z_keyexpr_check(&client_data->keyexpr)) {
-    RMW_SET_ERROR_MSG("unable to create zenoh keyexpr.");
-    return nullptr;
-  }
-
   // Note: Service request/response types will contain a suffix Request_ or Response_.
   // We remove the suffix when appending the type to the liveliness tokens for
   // better reusability within GraphCache.
@@ -2067,6 +2067,20 @@ rmw_create_client(
       service_type.c_str(), rmw_client->service_name);
     return nullptr;
   }
+
+  client_data->keyexpr = ros_topic_name_to_zenoh_key(
+    rmw_client->service_name,
+    service_type.c_str(),
+    node->context->actual_domain_id);
+  auto free_ros_keyexpr = rcpputils::make_scope_exit(
+    [client_data]() {
+      z_keyexpr_drop(z_move(client_data->keyexpr));
+    });
+  if (!z_keyexpr_check(&client_data->keyexpr)) {
+    RMW_SET_ERROR_MSG("unable to create zenoh keyexpr.");
+    return nullptr;
+  }
+
   client_data->entity = liveliness::Entity::make(
     z_info_zid(z_loan(node->context->impl->session)),
     std::to_string(node_data->id),
@@ -2564,8 +2578,26 @@ rmw_create_service(
     [rmw_service, allocator]() {
       allocator->deallocate(const_cast<char *>(rmw_service->service_name), allocator->state);
     });
+
+  // Note: Service request/response types will contain a suffix Request_ or Response_.
+  // We remove the suffix when appending the type to the liveliness tokens for
+  // better reusability within GraphCache.
+  std::string service_type = service_data->response_type_support->get_name();
+  size_t suffix_substring_position = service_type.find("Response_");
+  if (std::string::npos != suffix_substring_position) {
+    service_type = service_type.substr(0, suffix_substring_position);
+  } else {
+    RCUTILS_LOG_ERROR_NAMED(
+      "rmw_zenoh_cpp",
+      "Unexpected type %s for service %s. Report this bug",
+      service_type.c_str(), rmw_service->service_name);
+    return nullptr;
+  }
+
   service_data->keyexpr = ros_topic_name_to_zenoh_key(
-    rmw_service->service_name, node->context->actual_domain_id);
+    rmw_service->service_name,
+    service_type.c_str(),
+    node->context->actual_domain_id);
   auto free_ros_keyexpr = rcpputils::make_scope_exit(
     [service_data]() {
       if (service_data) {
@@ -2596,20 +2628,6 @@ rmw_create_service(
       z_undeclare_queryable(z_move(service_data->qable));
     });
 
-  // Note: Service request/response types will contain a suffix Request_ or Response_.
-  // We remove the suffix when appending the type to the liveliness tokens for
-  // better reusability within GraphCache.
-  std::string service_type = service_data->response_type_support->get_name();
-  size_t suffix_substring_position = service_type.find("Response_");
-  if (std::string::npos != suffix_substring_position) {
-    service_type = service_type.substr(0, suffix_substring_position);
-  } else {
-    RCUTILS_LOG_ERROR_NAMED(
-      "rmw_zenoh_cpp",
-      "Unexpected type %s for service %s. Report this bug",
-      service_type.c_str(), rmw_service->service_name);
-    return nullptr;
-  }
   service_data->entity = liveliness::Entity::make(
     z_info_zid(z_loan(node->context->impl->session)),
     std::to_string(node_data->id),
