@@ -257,7 +257,8 @@ rmw_init(const rmw_init_options_t * options, rmw_context_t * context)
     context->impl->graph_guard_condition->data,
     context->impl->graph_guard_condition->data,
     return RMW_RET_BAD_ALLOC,
-    GuardCondition);
+    GuardCondition,
+    context->impl);
   auto destruct_guard_condition_data = rcpputils::make_scope_exit(
     [context]() {
       auto gc_data = static_cast<GuardCondition *>(context->impl->graph_guard_condition->data);

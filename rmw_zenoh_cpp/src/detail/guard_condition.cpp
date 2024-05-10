@@ -13,11 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <mutex>
+
 #include "guard_condition.hpp"
 
+#include "rmw_data_types.hpp"
+
 ///==============================================================================
-GuardCondition::GuardCondition()
-: has_triggered_(false),
+GuardCondition::GuardCondition(rmw_context_impl_t * context_impl)
+: context_impl_(context_impl),
+  has_triggered_(false),
   condition_variable_(nullptr)
 {
 }
@@ -34,6 +39,12 @@ void GuardCondition::trigger()
 
   if (condition_variable_ != nullptr) {
     condition_variable_->notify_one();
+  }
+
+  {
+    std::lock_guard<std::mutex> lk(context_impl_->handles_mutex);
+    context_impl_->handles.insert(this);
+    context_impl_->handles_cv.notify_all();
   }
 }
 

@@ -2962,7 +2962,12 @@ rmw_create_guard_condition(rmw_context_t * context)
       allocator->deallocate(guard_condition->data, allocator->state);
     });
 
-  new(guard_condition->data) GuardCondition;
+  RMW_TRY_PLACEMENT_NEW(
+    guard_condition->data,
+    guard_condition->data,
+    return nullptr,
+    GuardCondition,
+    context->impl);
   auto destruct_guard_condition = rcpputils::make_scope_exit(
     [guard_condition]() {
       RMW_TRY_DESTRUCTOR_FROM_WITHIN_FAILURE(

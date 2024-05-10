@@ -20,11 +20,13 @@
 #include <condition_variable>
 #include <mutex>
 
+#include "rmw_data_types.hpp"
+
 ///==============================================================================
 class GuardCondition final
 {
 public:
-  GuardCondition();
+  explicit GuardCondition(rmw_context_impl_t * context_impl);
 
   // Sets has_triggered_ to true and calls notify_one() on condition_variable_ if set.
   void trigger();
@@ -36,6 +38,7 @@ public:
   bool get_and_reset_trigger();
 
 private:
+  rmw_context_impl_t * context_impl_;
   mutable std::mutex internal_mutex_;
   std::atomic_bool has_triggered_;
   std::condition_variable * condition_variable_;
