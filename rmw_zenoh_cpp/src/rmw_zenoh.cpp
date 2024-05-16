@@ -3125,18 +3125,14 @@ rmw_wait(
   // rmw_wait should return *all* entities that have data available, and let the caller decide
   // how to handle them.
   //
-  // If there is no data currently available in any of the entities we were told to wait on, we
-  // we attach a context-global condition variable to each entity, calculate a timeout based on
-  // wait_timeout, and then sleep on the condition variable.  If any of the entities has an event
-  // during that time, it will wake up from that sleep.
+  // The code below accomplishes this by first making a map between the pointer to each entity
+  // and the void ** pointer that will later allow us to manipulate that pointer.
+  // It then speculatively sets each of those entities to nullptr, which is the signal to the
+  // upper layers that this entity does *not* have work to do.
   //
-  // If there is data currently available in one or more of the entities, then we'll skip attaching
-  // the condition variable, and skip the sleep, and instead just go to the last part.
-  //
-  // In the last part, we check every entity and see if there are conditions that make it ready.
-  // If that entity is not ready, then we set the pointer to it to nullptr in the wait set, which
-  // signals to the upper layers that it isn't ready.  If something is ready, then we leave it as
-  // a valid pointer.
+  // After that, it looks at the set of handles (entity pointers) in the context implementation.
+  // That set is updated when any subscription, client, service, event, or guard condition
+  // becomes ready.
 
   std::unordered_map<void *, void **> data_to_parent;
 
@@ -3184,7 +3180,22 @@ rmw_wait(
 
   bool wait_result = true;
   std::unique_lock<std::mutex> lk(wait_set_data->context->impl->handles_mutex);
-  if (wait_set_data->context->impl->handles.empty()) {
+  bool should_wait = true;
+  std::unordered_set<void *>::iterator handle_it = wait_set_data->context->impl->handles.begin();
+
+  while (handle_it != wait_set_data->context->impl->handles.end()) {
+    // TODO(clalancette): We may be able to make this more performant by continuing to iterate to
+    // fill in all entries in the case that we found something.  Then we could
+    // skip the second iteration over the handles below.
+    std::unordered_map<void *, void **>::const_iterator it = data_to_parent.find(*handle_it);
+    if (it != data_to_parent.end()) {
+      should_wait = false;
+      break;
+    }
+    handle_it++;
+  }
+
+  if (should_wait) {
     // According to the RMW documentation, if wait_timeout is NULL that means
     // "wait forever", if it specified by 0 it means "never wait", and if it is anything else wait
     // for that amount of time.
@@ -3200,7 +3211,7 @@ rmw_wait(
   }
 
   bool has_data = false;
-  std::unordered_set<void *>::iterator handle_it = wait_set_data->context->impl->handles.begin();
+  handle_it = wait_set_data->context->impl->handles.begin();
 
   while (handle_it != wait_set_data->context->impl->handles.end()) {
     std::unordered_map<void *, void **>::const_iterator it = data_to_parent.find(*handle_it);
