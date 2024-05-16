@@ -27,6 +27,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "detail/attachment_helpers.hpp"
 #include "detail/cdr.hpp"
@@ -3181,7 +3182,7 @@ rmw_wait(
   bool wait_result = true;
   std::unique_lock<std::mutex> lk(wait_set_data->context->impl->handles_mutex);
   bool should_wait = true;
-  std::unordered_set<void *>::iterator handle_it = wait_set_data->context->impl->handles.begin();
+  std::vector<void *>::iterator handle_it = wait_set_data->context->impl->handles.begin();
 
   while (handle_it != wait_set_data->context->impl->handles.end()) {
     // TODO(clalancette): We may be able to make this more performant by continuing to iterate to
@@ -3214,13 +3215,17 @@ rmw_wait(
   handle_it = wait_set_data->context->impl->handles.begin();
 
   while (handle_it != wait_set_data->context->impl->handles.end()) {
-    std::unordered_map<void *, void **>::const_iterator it = data_to_parent.find(*handle_it);
+    std::unordered_map<void *, void **>::iterator it = data_to_parent.find(*handle_it);
     if (it != data_to_parent.end()) {
       *(it->second) = *handle_it;
       has_data = true;
-      std::unordered_set<void *>::iterator delete_handle_it = handle_it;
-      handle_it++;
-      wait_set_data->context->impl->handles.erase(delete_handle_it);
+      handle_it = wait_set_data->context->impl->handles.erase(handle_it);
+
+      // We want to erase it from our lookup map as well.  In the case that the same
+      // entity (sub, service, client, guard condition, or event) became ready more than once,
+      // it will be in the "handles" more than once.  But we only want to notify of the first one,
+      // since the upper layers will have to make multiple calls to get all of the data.
+      data_to_parent.erase(it);
     } else {
       handle_it++;
     }

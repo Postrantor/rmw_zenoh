@@ -167,7 +167,7 @@ void EventsManager::add_new_event(
 
   {
     std::lock_guard<std::mutex> lk(context_impl->handles_mutex);
-    context_impl->handles.insert(this);
+    context_impl->handles.push_back(this);
     context_impl->handles_cv.notify_all();
   }
 }

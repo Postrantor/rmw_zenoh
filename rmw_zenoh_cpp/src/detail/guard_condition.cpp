@@ -29,6 +29,6 @@ GuardCondition::GuardCondition(rmw_context_impl_t * context_impl)
 void GuardCondition::trigger()
 {
   std::lock_guard<std::mutex> lk(context_impl_->handles_mutex);
-  context_impl_->handles.insert(this);
+  context_impl_->handles.push_back(this);
   context_impl_->handles_cv.notify_all();
 }

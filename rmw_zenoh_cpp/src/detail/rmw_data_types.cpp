@@ -309,7 +309,7 @@ void sub_data_handler(
 
   {
     std::lock_guard<std::mutex> lk(sub_data->context->impl->handles_mutex);
-    sub_data->context->impl->handles.insert(data);
+    sub_data->context->impl->handles.push_back(data);
     sub_data->context->impl->handles_cv.notify_all();
   }
 }
@@ -356,7 +356,7 @@ void service_data_handler(const z_query_t * query, void * data)
 
   {
     std::lock_guard<std::mutex> lk(service_data->context->impl->handles_mutex);
-    service_data->context->impl->handles.insert(data);
+    service_data->context->impl->handles.push_back(data);
     service_data->context->impl->handles_cv.notify_all();
   }
 }
@@ -428,7 +428,7 @@ void client_data_handler(z_owned_reply_t * reply, void * data)
 
   {
     std::lock_guard<std::mutex> lk(client_data->context->impl->handles_mutex);
-    client_data->context->impl->handles.insert(data);
+    client_data->context->impl->handles.push_back(data);
     client_data->context->impl->handles_cv.notify_all();
   }
 }

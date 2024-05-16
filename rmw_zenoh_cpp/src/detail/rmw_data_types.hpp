@@ -24,7 +24,6 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -66,7 +65,7 @@ public:
 
   std::mutex handles_mutex;
   std::condition_variable handles_cv;
-  std::unordered_set<void *> handles;
+  std::vector<void *> handles;
 
 private:
   // A counter to assign a local id for every entity created in this session.
