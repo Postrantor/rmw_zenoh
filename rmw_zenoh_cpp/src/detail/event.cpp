@@ -104,22 +104,6 @@ void EventsManager::trigger_event_callback(rmw_zenoh_event_type_t event_id)
 }
 
 ///=============================================================================
-bool EventsManager::event_queue_is_empty(rmw_zenoh_event_type_t event_id) const
-{
-  if (event_id > ZENOH_EVENT_ID_MAX) {
-    RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
-      "RMW Zenoh is not correctly configured to handle rmw_zenoh_event_type_t [%d]. "
-      "Report this bug.",
-      event_id);
-    return true;
-  }
-
-  std::lock_guard<std::mutex> lock(event_mutex_);
-
-  return event_queues_[event_id].empty();
-}
-
-///=============================================================================
 std::unique_ptr<rmw_zenoh_event_status_t> EventsManager::pop_next_event(
   rmw_zenoh_event_type_t event_id)
 {

@@ -174,8 +174,6 @@ public:
   MessageTypeSupport * type_support;
   rmw_context_t * context;
 
-  bool message_queue_is_empty() const;
-
   std::unique_ptr<saved_msg_data> pop_next_message();
 
   void add_new_message(std::unique_ptr<saved_msg_data> msg, const std::string & topic_name);
@@ -233,8 +231,6 @@ public:
   ResponseTypeSupport * response_type_support;
 
   rmw_context_t * context;
-
-  bool query_queue_is_empty() const;
 
   std::unique_ptr<ZenohQuery> pop_next_query();
 
@@ -301,8 +297,6 @@ public:
   size_t get_next_sequence_number();
 
   void add_new_reply(std::unique_ptr<ZenohReply> reply);
-
-  bool reply_queue_is_empty() const;
 
   std::unique_ptr<ZenohReply> pop_next_reply();
 

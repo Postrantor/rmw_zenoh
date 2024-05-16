@@ -21,35 +21,14 @@
 
 ///==============================================================================
 GuardCondition::GuardCondition(rmw_context_impl_t * context_impl)
-: context_impl_(context_impl),
-  has_triggered_(false)
+: context_impl_(context_impl)
 {
 }
 
 ///==============================================================================
 void GuardCondition::trigger()
 {
-  std::lock_guard<std::mutex> lock(internal_mutex_);
-
-  // the change to hasTriggered_ needs to be mutually exclusive with
-  // rmw_wait() which checks hasTriggered() and decides if wait() needs to
-  // be called
-  has_triggered_ = true;
-
   std::lock_guard<std::mutex> lk(context_impl_->handles_mutex);
   context_impl_->handles.insert(this);
   context_impl_->handles_cv.notify_all();
-}
-
-///==============================================================================
-bool GuardCondition::get_and_reset_trigger()
-{
-  std::lock_guard<std::mutex> lock(internal_mutex_);
-  bool ret = has_triggered_;
-
-  // There is no data associated with the guard condition, so as soon as the callers asks about the
-  // state, we can immediately reset and get ready for the next trigger.
-  has_triggered_ = false;
-
-  return ret;
 }

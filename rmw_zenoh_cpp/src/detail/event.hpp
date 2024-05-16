@@ -119,10 +119,6 @@ public:
     rmw_event_callback_t callback,
     const void * user_data);
 
-  /// @brief  Returns true if the event queue is empty.
-  /// @param event_id the event id whose event queue should be checked.
-  bool event_queue_is_empty(rmw_zenoh_event_type_t event_id) const;
-
   /// Pop the next event in the queue.
   /// @param event_id the event id whose queue should be popped.
   std::unique_ptr<rmw_zenoh_event_status_t> pop_next_event(

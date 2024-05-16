@@ -28,15 +28,11 @@ class GuardCondition final
 public:
   explicit GuardCondition(rmw_context_impl_t * context_impl);
 
-  // Sets has_triggered_ to true and calls notify_one() on condition_variable_ if set.
+  // Calls notify_one() on condition_variable_.
   void trigger();
-
-  bool get_and_reset_trigger();
 
 private:
   rmw_context_impl_t * context_impl_;
-  mutable std::mutex internal_mutex_;
-  std::atomic_bool has_triggered_;
 };
 
 #endif  // DETAIL__GUARD_CONDITION_HPP_

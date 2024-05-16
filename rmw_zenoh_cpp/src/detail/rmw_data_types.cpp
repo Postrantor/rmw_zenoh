@@ -63,13 +63,6 @@ size_t rmw_publisher_data_t::get_next_sequence_number()
 }
 
 ///=============================================================================
-bool rmw_subscription_data_t::message_queue_is_empty() const
-{
-  std::lock_guard<std::mutex> lock(message_queue_mutex_);
-  return message_queue_.empty();
-}
-
-///=============================================================================
 std::unique_ptr<saved_msg_data> rmw_subscription_data_t::pop_next_message()
 {
   std::lock_guard<std::mutex> lock(message_queue_mutex_);
@@ -116,13 +109,6 @@ void rmw_subscription_data_t::add_new_message(
 
   // Since we added new data, trigger user callback and guard condition if they are available
   data_callback_mgr.trigger_callback();
-}
-
-///=============================================================================
-bool rmw_service_data_t::query_queue_is_empty() const
-{
-  std::lock_guard<std::mutex> lock(query_queue_mutex_);
-  return query_queue_.empty();
 }
 
 ///=============================================================================
@@ -251,14 +237,6 @@ void rmw_client_data_t::add_new_reply(std::unique_ptr<ZenohReply> reply)
 
   // Since we added new data, trigger user callback and guard condition if they are available
   data_callback_mgr.trigger_callback();
-}
-
-///=============================================================================
-bool rmw_client_data_t::reply_queue_is_empty() const
-{
-  std::lock_guard<std::mutex> lock(reply_queue_mutex_);
-
-  return reply_queue_.empty();
 }
 
 ///=============================================================================
